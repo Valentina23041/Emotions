@@ -1,0 +1,23 @@
+version: "3.9"
+
+services:
+  flask_backend:
+    build: .
+    container_name: flask_backend_hf
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./app:/app/app
+      - huggingface_cache:/models/huggingface
+    networks:
+      - backend_net
+
+volumes:
+  huggingface_cache:
+
+networks:
+  backend_net:
+    driver: bridge
