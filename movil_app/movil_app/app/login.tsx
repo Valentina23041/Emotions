@@ -34,10 +34,13 @@ export default function LoginScreen() {
       setMensaje("");
       setTipoMensaje("");
 
-      const response = await axios.post("http://127.0.0.1:5000/auth/login", {
-        correo,
-        contrasena,
-      });
+      const response = await axios.post(
+        "http://34.122.172.76:5000/auth/login",
+        {
+          correo,
+          contrasena,
+        },
+      );
 
       const user = response.data.user;
       await AsyncStorage.setItem("user", JSON.stringify(user));
@@ -56,117 +59,102 @@ export default function LoginScreen() {
     }
   };
 
-const handleForgotPassword = () => {
-  setTipoMensaje("error");
-  setMensaje("Aquí luego conectaremos la recuperación de contraseña.");
-};
+  const handleForgotPassword = () => {
+    setTipoMensaje("error");
+    setMensaje("Aquí luego conectaremos la recuperación de contraseña.");
+  };
 
-return (
-  <SafeAreaView style={styles.container}>
-    <View style={styles.wrapper}>
-      <View style={styles.card}>
-        <Image
-          source={require("../assets/images/register.jpeg")}
-          style={styles.avatar}
-          resizeMode="contain"
-        />
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.wrapper}>
+        <View style={styles.card}>
+          <Image
+            source={require("../assets/images/register.jpeg")}
+            style={styles.avatar}
+            resizeMode="contain"
+          />
 
-        <Text style={styles.title}>
-          ¡Hola!, inicia sesión en tu cuenta
-        </Text>
+          <Text style={styles.title}>¡Hola!, inicia sesión en tu cuenta</Text>
 
-        <Text style={styles.subtitle}>
-          Ingresa tus datos para continuar con tu proceso emocional.
-        </Text>
-
-        <TextInput
-          style={styles.input}
-          placeholder="Correo"
-          placeholderTextColor="#7B8794"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          value={correo}
-          onChangeText={setCorreo}
-        />
-
-        <TextInput
-          style={styles.input}
-          placeholder="Contraseña"
-          placeholderTextColor="#7B8794"
-          secureTextEntry
-          value={contrasena}
-          onChangeText={setContrasena}
-        />
-
-        <TouchableOpacity
-          onPress={handleForgotPassword}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.forgotText}>
-            ¿Olvidaste tu contraseña?
+          <Text style={styles.subtitle}>
+            Ingresa tus datos para continuar con tu proceso emocional.
           </Text>
-        </TouchableOpacity>
 
-        {mensaje ? (
-          <View
-            style={[
-              styles.messageBox,
-              tipoMensaje === "success"
-                ? styles.successBox
-                : styles.errorBox,
-            ]}
-          >
-            <Text
+          <TextInput
+            style={styles.input}
+            placeholder="Correo"
+            placeholderTextColor="#7B8794"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            value={correo}
+            onChangeText={setCorreo}
+          />
+
+          <TextInput
+            style={styles.input}
+            placeholder="Contraseña"
+            placeholderTextColor="#7B8794"
+            secureTextEntry
+            value={contrasena}
+            onChangeText={setContrasena}
+          />
+
+          <TouchableOpacity onPress={handleForgotPassword} activeOpacity={0.8}>
+            <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
+          </TouchableOpacity>
+
+          {mensaje ? (
+            <View
               style={[
-                styles.messageText,
-                tipoMensaje === "success"
-                  ? styles.successText
-                  : styles.errorText,
+                styles.messageBox,
+                tipoMensaje === "success" ? styles.successBox : styles.errorBox,
               ]}
             >
-              {mensaje}
+              <Text
+                style={[
+                  styles.messageText,
+                  tipoMensaje === "success"
+                    ? styles.successText
+                    : styles.errorText,
+                ]}
+              >
+                {mensaje}
+              </Text>
+            </View>
+          ) : null}
+
+          <TouchableOpacity
+            style={[styles.button, loading && styles.buttonDisabled]}
+            onPress={handleLogin}
+            activeOpacity={0.85}
+            disabled={loading}
+          >
+            <Text style={styles.buttonText}>
+              {loading ? "Cargando..." : "Iniciar sesión"}
             </Text>
-          </View>
-        ) : null}
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[
-            styles.button,
-            loading && styles.buttonDisabled,
-          ]}
-          onPress={handleLogin}
-          activeOpacity={0.85}
-          disabled={loading}
-        >
-          <Text style={styles.buttonText}>
-            {loading ? "Cargando..." : "Iniciar sesión"}
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.linkButton}
+            onPress={() => router.push("/register")}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.linkText}>¿No tienes cuenta? Regístrate</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.linkButton}
-          onPress={() => router.push("/register")}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.linkText}>
-            ¿No tienes cuenta? Regístrate
-          </Text>
-        </TouchableOpacity>
-
-        {/*  LINK ADMIN */}
-        <TouchableOpacity
-          style={styles.adminLinkButton}
-          onPress={() => router.push("/admin-login")}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.adminLinkText}>
-            ¿Eres administrador? Acceder al panel
-          </Text>
-        </TouchableOpacity>
-
+          {/*  LINK ADMIN */}
+          <TouchableOpacity
+            style={styles.adminLinkButton}
+            onPress={() => router.push("/admin-login")}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.adminLinkText}>
+              ¿Eres administrador? Acceder al panel
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
-  </SafeAreaView>
+    </SafeAreaView>
   );
 }
 
@@ -284,12 +272,12 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   adminLinkButton: {
-  marginTop: 16,
-},
-adminLinkText: {
-  color: "#5B6770",
-  fontSize: 13,
-  fontWeight: "600",
-  textAlign: "center",
-},
+    marginTop: 16,
+  },
+  adminLinkText: {
+    color: "#5B6770",
+    fontSize: 13,
+    fontWeight: "600",
+    textAlign: "center",
+  },
 });

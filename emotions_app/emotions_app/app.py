@@ -5,7 +5,14 @@ from presentation.auth_controller import auth_bp
 from presentation.admin_controller import admin_bp
 
 app = Flask(__name__)
-CORS(app)
+
+CORS(
+    app,
+    resources={r"/*": {"origins": "*"}},
+    supports_credentials=False,
+    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"]
+)
 
 app.register_blueprint(emotion_bp)
 app.register_blueprint(auth_bp)

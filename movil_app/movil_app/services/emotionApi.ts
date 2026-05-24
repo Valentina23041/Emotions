@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "http://127.0.0.1:5000";
+const API_URL = "http://34.122.172.76:5000";
 
 export const getUserStatistics = async (userId: string) => {
   const response = await axios.get(`${API_URL}/estadisticas/${userId}`);
