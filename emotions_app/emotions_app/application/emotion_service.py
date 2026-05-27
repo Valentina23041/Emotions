@@ -10,22 +10,38 @@ class EmotionService:
         self.repo = EmotionRepository()
         self.classifier = EmotionClassifier()
         self.preguntas = {
-            1: "Hola, estoy aquí para escucharte. Para empezar, cuéntame: ¿cómo te sientes hoy?",
-            2: "Gracias por compartirlo. Ahora cuéntame un poco más: ¿qué situación te hizo sentir así?",
-            3: "Entiendo. ¿Qué pensamientos han pasado por tu mente frente a esa situación?",
-            4: "Para finalizar, describe con tus propias palabras la emoción que sientes en este momento."
-        }
+    1: (
+        "Hola, estoy aquí para escucharte. Para empezar, cuéntame: ¿cómo te sientes hoy?"
+    ),
 
+    2: (
+        "Gracias por compartirlo. Ahora cuéntame un poco más: ¿qué situación te hizo sentir así?\n\n"
+        "📌 Situación: Es el hecho o acontecimiento que ocurrió y que influyó en cómo te sientes.\n"
+        'Ejemplo: "Me fue mal en un examen".'
+    ),
+
+    3: (
+        "Entiendo. ¿Qué pensamientos han pasado por tu mente frente a esa situación?\n\n"
+        "📌 Pensamiento: Son las ideas o interpretaciones que surgieron a partir de esa situación.\n"
+        'Ejemplo: "No soy capaz" o "voy a perder la materia".'
+    ),
+
+    4: (
+        "Para finalizar, describe con tus propias palabras la emoción que sientes en este momento.\n\n"
+        "📌 Sentimiento/Emoción: Es la emoción que experimentas como respuesta a la situación y a tus pensamientos.\n"
+        "Ejemplo: tristeza, frustración, miedo, enojo o alegría."
+    )
+}
     def normalizar_emocion(self, emocion):
         mapa = {
             "tristeza": "Tristeza",
             "felicidad": "Alegría",
             "alegría": "Alegría",
-            "neutral": "Neutral",
+            "neutral": "Estado emocional estable",
             "miedo": "Miedo",
             "ira": "Ira"
         }
-        return mapa.get(str(emocion).lower(), "Neutral")
+        return mapa.get(str(emocion).lower(), "Estado emocional estable")
 
     def iniciar_chat(self, id_usuario):
         session_id = self.repo.crear_sesion(id_usuario)
@@ -67,7 +83,7 @@ class EmotionService:
             return (
                 "Es muy valioso que puedas reconocer este estado positivo. Intenta identificar qué lo generó, para fortalecer esos hábitos o situaciones que aportan a tu bienestar."
             )
-        elif emocion == "Neutral":
+        elif emocion == "Estado emocional estable":
             return (
                 "Aunque no siempre sentimos emociones intensas, observar cómo estamos también es importante. "
                 "Puedes seguir registrando tus emociones para conocerte mejor con el tiempo."
@@ -97,7 +113,7 @@ class EmotionService:
             return (
                 "Me alegra saber que estás experimentando algo positivo. Reconocer estos momentos también ayuda a fortalecer tu bienestar emocional."
             )
-        elif emocion == "Neutral":
+        elif emocion == "Estado emocional estable":
             return (
                 "Gracias por compartirlo. A veces no tenemos una emoción muy marcada, y eso también hace parte de nuestro estado emocional."
             )
@@ -143,6 +159,7 @@ class EmotionService:
             resultado = self.classifier.classify(texto)
 
             emocion = self.normalizar_emocion(resultado["emotion"])
+            sentimiento = resultado.get("sentiment", "neutral").capitalize()
             confianza = resultado["confidence"]
 
             nivel_riesgo = self.calcular_riesgo(emocion, confianza)
@@ -151,7 +168,7 @@ class EmotionService:
             requiere_seguimiento = nivel_riesgo in ["medio", "alto"]
 
             puntaje_emocional = 1
-            if emocion == "Neutral":
+            if emocion == "Estado emocional estable":
                 puntaje_emocional = 2
             elif emocion == "Miedo":
                 puntaje_emocional = 3
@@ -163,6 +180,7 @@ class EmotionService:
             self.repo.actualizar_sesion(session_id, {
                 "respuestaEmocion": texto,
                 "emocionDetectada": emocion,
+                "sentimientoDetectado": sentimiento,
                 "confianza": confianza,
                 "nivelRiesgo": nivel_riesgo,
                 "mensajeRecomendacion": recomendacion,
@@ -182,6 +200,7 @@ class EmotionService:
                     "idUsuario": id_usuario,
                     "sessionId": session_id,
                     "emocionDetectada": emocion,
+                    "sentimientoDetectado": sentimiento,
                     "confianza": confianza,
                     "nivelRiesgo": nivel_riesgo,
                     "motivo": f"Emoción {emocion} detectada",
@@ -201,8 +220,9 @@ class EmotionService:
             if requiere_seguimiento:
                 respuesta_final = (
                     f"{mensaje_apoyo} "
-                    f"Al analizar tu respuesta, identifiqué señales asociadas a {emocion} "
-                    f"con una confianza aproximada de {porcentaje_confianza}%. "
+                    f"Al analizar tu respuesta, identifiqué señales asociadas a {emocion}. "
+                    f"El sentimiento asociado es {sentimiento}. "
+                    f"Con una confianza aproximada de {porcentaje_confianza}%. "
                     f"{recomendacion} "
                     f"Además, por el nivel de riesgo identificado, un profesional de Bienestar Institucional "
                     f"podrá ponerse en contacto contigo para brindarte acompañamiento."
@@ -210,8 +230,9 @@ class EmotionService:
             else:
                 respuesta_final = (
                     f"{mensaje_apoyo} "
-                    f"Al analizar tu respuesta, identifiqué señales asociadas a {emocion} "
-                    f"con una confianza aproximada de {porcentaje_confianza}%. "
+                    f"Al analizar tu respuesta, identifiqué señales asociadas a {emocion}. "
+                    f"El sentimiento asociado es {sentimiento}. "
+                    f"Con una confianza aproximada de {porcentaje_confianza}%. "
                     f"{recomendacion}"
                 )
 
@@ -226,6 +247,7 @@ class EmotionService:
                 "session_id": session_id,
                 "respuesta": respuesta_final,
                 "emocion": emocion,
+                "sentimiento": sentimiento,
                 "confianza": confianza,
                 "nivelRiesgo": nivel_riesgo,
                 "requiereSeguimiento": requiere_seguimiento,
@@ -291,6 +313,10 @@ class EmotionService:
         conteo_emociones = Counter(emociones)
 
         emocion_dominante, cantidad_dominante = conteo_emociones.most_common(1)[0]
+        sentimientos = [s.get("sentimientoDetectado") for s in sesiones_completadas if s.get("sentimientoDetectado")]
+        conteo_sentimientos = Counter(sentimientos)
+        sentimiento_dominante = (conteo_sentimientos.most_common(1)[0][0] if conteo_sentimientos else None)
+        
         porcentaje_dominante = round((cantidad_dominante / total_registros) * 100, 2)
 
         distribucion = {
@@ -316,7 +342,7 @@ class EmotionService:
 
         mapa_puntajes = {
             "Alegría": 1,
-            "Neutral": 2,
+            "Estado emocional estable": 2,
             "Miedo": 3,
             "Tristeza": 4,
             "Ira": 4
@@ -349,6 +375,7 @@ class EmotionService:
             "idUsuario": id_usuario,
             "totalRegistros": total_registros,
             "emocionDominante": emocion_dominante,
+            "sentimientoDominante": sentimiento_dominante,
             "porcentajeDominante": porcentaje_dominante,
             "estadoGeneral": estado_general,
             "riesgoAltoPorcentaje": riesgo_alto_porcentaje,
