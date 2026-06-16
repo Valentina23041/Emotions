@@ -382,3 +382,19 @@ class EmotionService:
             "distribucionEmociones": distribucion,
             "tendencia7Dias": tendencia
         }
+    
+    def obtener_palabras_emocionales(self):
+        return self.repo.obtener_palabras_emocionales()
+
+    def agregar_palabra_emocional(self, palabra, emocion, sentiment, confidence=0.90):
+        nueva_palabra = self.repo.agregar_palabra_emocional(
+            palabra=palabra,
+            emocion=emocion,
+            sentiment=sentiment,
+            confidence=confidence,
+            tipo="nueva"
+        )
+
+        self.classifier.refrescar_palabras_emocionales()
+
+        return nueva_palabra

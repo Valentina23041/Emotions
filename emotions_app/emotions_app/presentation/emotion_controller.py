@@ -38,3 +38,48 @@ def responder_chat():
 def obtener_estadisticas(id_usuario):
     resultado = service.obtener_estadisticas(id_usuario)
     return jsonify(resultado), 200
+
+@emotion_bp.route("/palabras-emocionales", methods=["GET"])
+def obtener_palabras_emocionales():
+    resultado = service.obtener_palabras_emocionales()
+    return jsonify(resultado), 200
+
+
+@emotion_bp.route("/palabras-emocionales", methods=["POST"])
+def agregar_palabra_emocional():
+    data = request.get_json()
+
+    palabra = data.get("palabra")
+    emocion = data.get("emocion")
+    sentiment = data.get("sentiment")
+    confidence = data.get("confidence", 0.90)
+
+    if not palabra or not emocion or not sentiment:
+        return jsonify({
+            "error": "Los campos palabra, emocion y sentiment son obligatorios"
+        }), 400
+
+    emociones_validas = ["felicidad", "tristeza", "miedo", "ira"]
+    sentiments_validos = ["positivo", "negativo", "neutral"]
+
+    if emocion not in emociones_validas:
+        return jsonify({
+            "error": "La emocion debe ser: felicidad, tristeza, miedo o ira"
+        }), 400
+
+    if sentiment not in sentiments_validos:
+        return jsonify({
+            "error": "El sentiment debe ser: positivo, negativo o neutral"
+        }), 400
+
+    nueva_palabra = service.agregar_palabra_emocional(
+        palabra=palabra,
+        emocion=emocion,
+        sentiment=sentiment,
+        confidence=confidence
+    )
+
+    return jsonify({
+        "mensaje": "Palabra emocional agregada correctamente",
+        "data": nueva_palabra
+    }), 201
