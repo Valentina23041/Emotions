@@ -137,6 +137,93 @@ class EmotionClassifier:
 
         return None
 
+    def obtener_palabras_existentes_normalizadas(self):
+        """
+        Obtiene las palabras ya registradas en Firebase,
+        normalizadas para evitar duplicados por tildes o mayúsculas.
+        """
+        palabras_existentes = set()
+
+        for item in self.palabras_emocionales:
+            palabra = item.get("palabra", "")
+
+            if palabra:
+                palabras_existentes.add(self.normalizar_texto(palabra))
+
+                for lema in self.obtener_lemas(palabra):
+                    palabras_existentes.add(self.normalizar_texto(lema))
+
+        return palabras_existentes
+
+    def extraer_palabras_nuevas(self, texto):
+        """
+        Extrae posibles palabras emocionales nuevas del texto del usuario.
+        Solo toma palabras relevantes como adjetivos o sustantivos.
+        """
+        palabras_existentes = self.obtener_palabras_existentes_normalizadas()
+        doc = self.nlp(texto.lower())
+
+        palabras_ignorar = {
+            "sentir", "estar", "tener", "hacer", "pasar",
+            "todo", "cosa", "situacion", "momento", "dia",
+            "hoy", "forma", "manera", "vez", "algo"
+        }
+
+        palabras_nuevas = []
+
+        for token in doc:
+            if token.is_stop or token.is_punct or token.is_space:
+                continue
+
+            if token.pos_ not in ["ADJ", "NOUN"]:
+                continue
+
+            palabra_original = token.lemma_.lower().strip()
+            palabra_normalizada = self.normalizar_texto(palabra_original)
+
+            if len(palabra_normalizada) <= 3:
+                continue
+
+            if palabra_normalizada in palabras_ignorar:
+                continue
+
+            if palabra_normalizada in palabras_existentes:
+                continue
+
+            if palabra_original not in palabras_nuevas:
+                palabras_nuevas.append(palabra_original)
+
+        return palabras_nuevas[:1]
+
+    def guardar_palabras_nuevas_desde_chat(self, texto, emotion, sentiment, confidence):
+        """
+        Guarda automáticamente en Firebase una palabra nueva detectada en el chat,
+        siempre que no exista previamente en la colección palabras_emocionales.
+        """
+        if sentiment == "neutral":
+            return
+
+        if emotion == "estado emocional estable":
+            return
+
+        if confidence < 0.70:
+            return
+
+        palabras_nuevas = self.extraer_palabras_nuevas(texto)
+
+        for palabra in palabras_nuevas:
+            self.emotion_repository.agregar_palabra_emocional(
+                palabra=palabra,
+                emocion=emotion,
+                sentiment=sentiment,
+                confidence=round(float(confidence), 2),
+                tipo="detectada_chat"
+            )
+
+        if palabras_nuevas:
+            self.refrescar_palabras_emocionales()
+
+    
     def classify(self, text):
         # Consulta Firebase para reconocer palabras nuevas agregadas en la base de datos
         self.refrescar_palabras_emocionales()
@@ -164,6 +251,14 @@ class EmotionClassifier:
         else:
             emotion = "estado emocional estable"
             sentiment = "neutral"
+
+        # Si no estaba en Firebase, guarda una posible palabra nueva detectada en el chat
+        self.guardar_palabras_nuevas_desde_chat(
+            texto=text,
+            emotion=emotion,
+            sentiment=sentiment,
+            confidence=score
+        )
 
         return {
             "emotion": emotion,
