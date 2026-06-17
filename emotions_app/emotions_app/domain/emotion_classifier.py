@@ -90,18 +90,24 @@ class EmotionClassifier:
         similitud = self.calcular_similitud(palabra1, palabra2)
 
         return similitud >= 0.82
-
+    
     def detectar_emocion_por_pln(self, texto):
         """
-        Detecta emociones usando:
+        Detecta la emoción predominante en el texto usando:
         - palabras cargadas desde Firebase
         - texto normalizado
         - tokenización
         - lematización
         - similitud con SequenceMatcher
+
+        Esta versión analiza toda la frase y no se queda con la primera
+        palabra emocional encontrada. Acumula puntajes por emoción y
+        retorna la emoción predominante.
         """
         texto_normalizado = self.normalizar_texto(texto)
         lemas_texto = self.obtener_lemas(texto)
+
+        puntajes = {}
 
         for item in self.palabras_emocionales:
             palabra_clave = item.get("palabra", "")
@@ -113,30 +119,70 @@ class EmotionClassifier:
                 continue
 
             palabra_clave_normalizada = self.normalizar_texto(palabra_clave)
+            encontro_coincidencia = False
+            mejor_similitud = 0
 
             # 1. Detecta frases completas como "muy bien"
             if " " in palabra_clave_normalizada:
                 if palabra_clave_normalizada in texto_normalizado:
-                    return {
-                        "emotion": emocion,
-                        "sentiment": sentiment,
-                        "confidence": confidence
-                    }
+                    encontro_coincidencia = True
+                    mejor_similitud = 1.0
 
-            # 2. Detecta palabras por lemas y similitud
+            # 2. Detecta palabras individuales por lemas y similitud
             lemas_palabra_clave = self.obtener_lemas(palabra_clave)
 
             for lema_texto in lemas_texto:
                 for lema_clave in lemas_palabra_clave:
                     if self.son_similares(lema_texto, lema_clave):
-                        return {
-                            "emotion": emocion,
-                            "sentiment": sentiment,
-                            "confidence": confidence
-                        }
+                        similitud = self.calcular_similitud(
+                            self.normalizar_texto(lema_texto),
+                            self.normalizar_texto(lema_clave)
+                        )
 
-        return None
+                        encontro_coincidencia = True
+                        mejor_similitud = max(mejor_similitud, similitud)
 
+            if encontro_coincidencia:
+                if emocion not in puntajes:
+                    puntajes[emocion] = {
+                        "puntaje": 0,
+                        "sentiment": sentiment,
+                        "confidence_total": 0,
+                        "coincidencias": 0
+                    }
+
+                puntaje_palabra = mejor_similitud * confidence
+
+                puntajes[emocion]["puntaje"] += puntaje_palabra
+                puntajes[emocion]["confidence_total"] += confidence
+                puntajes[emocion]["coincidencias"] += 1
+
+        if not puntajes:
+            return None
+
+        emocion_predominante = max(
+            puntajes,
+            key=lambda emocion: puntajes[emocion]["puntaje"]
+        )
+
+        datos = puntajes[emocion_predominante]
+
+        confidence_promedio = (
+            datos["confidence_total"] / datos["coincidencias"]
+            if datos["coincidencias"] > 0
+            else 0.90
+        )
+
+        return {
+            "emotion": emocion_predominante,
+            "sentiment": datos["sentiment"],
+            "confidence": round(confidence_promedio, 2),
+            "puntajes": {
+                emocion: round(info["puntaje"], 2)
+                for emocion, info in puntajes.items()
+            }
+        }
+    
     def obtener_palabras_existentes_normalizadas(self):
         """
         Obtiene las palabras ya registradas en Firebase,
